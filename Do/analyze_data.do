@@ -1,5 +1,7 @@
 ********************************************************************************
-*Data analysis for chilrden in state care
+*Data analysis for
+*Family foster care or residential care: the impact of home environment on children raised in state care
+*Authors: Anna Bárdits, Gábor Kertesi
 *code by Anna Bárdits, 17/07/2024
 ********************************************************************************
 *set working directory (only needed if run without data preparation)
