@@ -8,6 +8,7 @@ OVERVIEW
 The code in the replication package produces the tables and figures presented in the paper and online appendix. The full replication package including the datasets required for the reproduction of the analysis can be accessed at the Centre for Economic and Regional Studies (CERS) prosperity server. Data used in this project is individual-level, sensitive, and cannot be made publicly available. The codes in the replication package are public.
 Access to the data can be provided through the Databank of CERS (contact: adatkeres@krtk.hun-ren.hu). The replicator can get remote access to the analysis data, and the main raw data source (Admin3), and can reproduce all results in the main text of the paper remotely. To replicate the full process which generates the analysis data from raw data, the replicator or locally hired assistant has to be physically present in CERS’s Research Rooms.
 This replication package assumes that the replicator wishes to reproduce the results remotely, using the analysis data. The codes that generate the analysis data from the raw data sources are also included in the package.
+
  
 DESCRIPTION OF THE SCRIPTS
 
@@ -19,7 +20,7 @@ Input_data/unicef_datacare.dta	Additional data needed for one figure https://bet
 
 If the replicator wishes to reproduce the data cleaning process as well, Do/master.do script should be run, and access to Admin3 h2 files is needed. The master.do file calls subscripts (including analyze_data.do and additionally data preparation and cleaning scripts), which in turn call further subscripts. 
  
-Instructions to Replicators
+INSTRUCTIONS FOR REPLICATION
 •	Connect to CERS’s prosperity server (detailed instructions are given by CERS Databank, adatkeres@krtk.hu), with VNC viewer
 •	Open Stata-Mp version 16.24 (use the following command in the terminal: /home/apps/stata/prosperity/stata16_24/xstata-mp)
 •	Open and run the do files (from beginning to end).
