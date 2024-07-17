@@ -19,12 +19,20 @@ Input_data/residential_ratio_hun.dta	Additional data needed for one figure. Hung
 Input_data/unicef_datacare.dta	Additional data needed for one figure https://bettercarenetwork.org/sites/default/files/2022-02/Better%20data%20for%20better%20child%20protection%20in%20Europe_Technical%20report%20to%20the%20DataCare%20project.pdf
 
 If the replicator wishes to reproduce the data cleaning process as well, Do/master.do script should be run, and access to Admin3 h2 files is needed. The master.do file calls subscripts (including analyze_data.do and additionally data preparation and cleaning scripts), which in turn call further subscripts. 
- 
+
+
+ 
 INSTRUCTIONS FOR REPLICATION
+
 •	Connect to CERS’s prosperity server (detailed instructions are given by CERS Databank, adatkeres@krtk.hu), with VNC viewer
+
 •	Open Stata-Mp version 16.24 (use the following command in the terminal: /home/apps/stata/prosperity/stata16_24/xstata-mp)
+
 •	Open and run the do files (from beginning to end).
+
 1.	run Do/setup.do – installs packages, and sets the working directory. The working directory is set in line 1 (e.g. cd “/path/Replication” )
 2.	run Do/analyze_data.do
+
+   
 In the script the number of the exhibit is indicated in the comments. The results are stored in the Results folder. After running the codes and obtaining the exhibits, the replicator can open the files on CERS’s server using the “libreoffice” command in the terminal. (For example, after changing to the parent directory, type “libreoffice Results/ Results/proxycontrol_outcome.csv". Alternatively, if the replicator wishes to save the exhibits to her own computer, she can request the Databank to download and send her the outputs of the Results folder.
 
