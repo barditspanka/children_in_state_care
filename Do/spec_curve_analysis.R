@@ -5,7 +5,12 @@ library(gghighlight)
 library(patchwork)
 library(ggpubr)
 
-setwd("C:/Users/bardi/Dropbox/Children in State Care/Revision/specificity curve analysis")
+#these codes need to be run after all stata codes have run
+#and the csv files for the spacifiaction reults and 
+# csv files for estimates on nullfied outcomes are ready
+
+#set woring directory
+#setwd("C:/Users/bardi/Dropbox/Children in State Care/Revision/specification curve analysis")
 
 
 #for outcome index
