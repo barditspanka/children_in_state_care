@@ -1,11 +1,10 @@
-*Compile sample for main analysis
+*Compile sample for robustness checks
 *Data analysis for children in state care
 use "Output_data/CISC_clean.dta", clear
 
 *If somebody has multiple observations for grade, I use the first (in time)
 sort anon t
 bysort anon grade: gegen first_obs=min(t)
-
 
 sort anon t
 *Children have to be observed until last montn of maxage
@@ -14,15 +13,11 @@ global maxage=19
 bysort anon: gegen maxage_month=max(monthly_age)
 drop if missing(maxage_month)
 drop if maxage_month<${maxage}+0.9
-
-
-*For main results, only those, who do not change home type
-drop if home_change==1
-
+save temp, replace
 
 bysort anon (t): gen num_tranquil=sum(drug_antidep)
 bysort anon (t): gen num_antidep=sum(drug_tranquil)
-save temp, replace
+
 *keep 6th grade observations
 preserve 
 	keep if grade==6 & first_obs==t
@@ -34,7 +29,7 @@ preserve
 
 	keep anon t m_zpsc o_zpsc home_type_clean year grade grade_* m_szint o_szint /*
 	*/boy num_siblings age monthly_age mother_educ father_educ telephely_anonim sni county jaras_al tranquil antidep csh_index mother_job father_job roomnumber_hh cellphonenum computernum carnum bathroomnum booknum internet own_books own_desk own_room own_computer family_hwhelp family_talkschool family_talkread family_housework family_gardening household_size mother_age educ_plans age_firstpre6_move sum_district_change late_schoolstarter late_schoolstarter2 /*
-*/ parent_teacher_conference household_size fosterfam_quality fosterfam_finquality fosterfam_emoquality t20
+*/ parent_teacher_conference household_size fosterfam_quality fosterfam_finquality fosterfam_emoquality
 
 	rename county county_gr6
 
@@ -43,7 +38,7 @@ preserve
 	rename jaras_al jaras_al_gr6
 	*save vars from 6th grade
 	sort anon t
-	save "Output_data/6th_grade_data.dta", replace
+	save "Output_data/6th_grade_data_${maxage}.dta", replace
 restore
 preserve 
 	keep if grade==8 & first_obs==t
@@ -52,7 +47,7 @@ preserve
 	
 	rename * *8
 	rename anon8 anon
-	save "Output_data/8th_grade_scores.dta", replace
+	save "Output_data/8th_grade_scores_${maxage}.dta", replace
 restore
 
 preserve 
@@ -62,18 +57,21 @@ preserve
 	
 	rename * *10
 	rename anon10 anon
-	save "Output_data/10th_grade_scores.dta", replace
+	save "Output_data/10th_grade_scores_${maxage}.dta", replace
 restore
 	
 *use 
 use temp, clear
 sort anon t
 
-*health outcomes - to one line at age_month 19.93
-*num abortions, num deliveries, drug_tranquil, drug_antidep
 
 bysort anon (t): gen num_abortions=sum(CS_sex_abort)
 bysort anon (t): gen num_birth=sum(CS_sex_deli)
+
+bysort anon (t): gen num_tranquil=sum(drug_antidep)
+
+bysort anon (t): gen num_antidep=sum(drug_tranquil)
+
 
 
 *outcomes for age 19
@@ -90,24 +88,30 @@ bysort anon (t): gen sum_erettsegi=sum(erettsegi_t)
 
 *generate a variable indicating hometype in 8th grade*_nomiss
 
+gen hometype6_s=home_type_clean if grade==6 & first_obs==t
+bysort anon: gegen hometype6=max(hometype6_s)
+
 gen hometype8_s=home_type_clean if grade==8 & first_obs==t
 bysort anon: gegen hometype8=max(hometype8_s)
 
 gen hometype10_s=home_type_clean if grade==10 & first_obs==t
 bysort anon: gegen hometype10=max(hometype10_s)
 
+*keep if hometype missing in 6th
+keep if (hometype8==2 | hometype8==3)
+
 
 keep if age==$maxage & korho==12
 keep anon t jaras_al county num_abortions num_birth num_tranquil num_antidep sum_neet${maxage} /*
 */ sum_unemp${maxage} sum_publicw${maxage} sum_altalanos sum_szakma sum_erettsegi hometype8
 rename t t${maxage}
-rename county county_19
-rename jaras_al jaras_al_19
+rename county county_${maxage}
+rename jaras_al jaras_al_${maxage}
 
 *merge 1:1 anon using 
-merge 1:1 anon using "Output_data/6th_grade_data.dta", nogen
-merge 1:1 anon using "Output_data/8th_grade_scores.dta", nogen
-merge 1:1 anon using "Output_data/10th_grade_scores.dta", nogen
+merge 1:1 anon using "Output_data/6th_grade_data_${maxage}.dta", nogen
+merge 1:1 anon using "Output_data/8th_grade_scores_${maxage}.dta", nogen
+merge 1:1 anon using "Output_data/10th_grade_scores_${maxage}.dta", nogen
 sort anon
 
 gen neet_all_year=0
@@ -131,8 +135,8 @@ gen public_works_1m=0
 replace public_works_1m=1 if sum_publicw${maxage}>0 & !missing(sum_publicw${maxage})
 
 gen grouphome=.
-replace grouphome=0 if home_type_clean==2
-replace grouphome=1 if home_type_clean==3
+replace grouphome=0 if hometype8==2
+replace grouphome=1 if hometype8==3
 
 gen fmother_sec_educ=.
 replace fmother_sec_educ=0 if mother_educ<=3 & home_type_clean==2
@@ -214,16 +218,16 @@ gen ever_mental_problem=0
 replace ever_mental_problem=1 if (ever_tranquil==1 | ever_antidep==1)
 lab var ever_mental_problem "Ever bought tranquilezers or antidepressants"
 *keep only 
-keep if !missing(home_type_clean)
+keep if !missing(hometype8)
 sort anon t
 order anon t home_type_clean
 
 cap drop foster       
-gen foster=0 if home_type_clean==3
-replace foster=1  if home_type_clean==2
+gen foster=0 if hometype8==3
+replace foster=1  if hometype8==2
 
 compress
-save "Output_data/CISC_regdata_temp.dta", replace
+save "Output_data/CISC_regdata_any6sc8_temp.dta", replace
 
 *add county data
 
@@ -273,8 +277,6 @@ replace num_statecare_pest=2444+2313 if county_pest==21
 
 gen fostermums_100kid_pest= foster_mother_2015_pest/num_statecare_pest*100
 
-rename komplex_fejl komplex
-
 rename * *_c
 
 rename county_c county_gr6
@@ -282,7 +284,9 @@ rename county_c county_gr6
 
 rename ev_c year
 
-merge 1:m county_gr6 year using "Output_data/CISC_regdata_temp.dta", nogen keep(using match)
+merge 1:m county_gr6 year using "Output_data/CISC_regdata_any6sc8_temp.dta", nogen keep(using match)
+
+sort anon t
 
 
 
@@ -317,7 +321,7 @@ cap drop z_`x'
 egen z_`x' = std(`x'_neg)
 }
 
-foreach x of varlist secondary_finished_19 {
+foreach x of varlist secondary_finished_$maxage {
 cap drop `x'_fost
 gen `x'_fost=`x' if !missing(foster)
 cap drop z_`x' 	
@@ -337,7 +341,7 @@ cap drop z_`x'
 egen z_`x' = std(`x'_neg)
 }
 
-foreach x of varlist secondary_finished_19 {
+foreach x of varlist secondary_finished_$maxage {
 cap drop `x'_fost
 gen `x'_fost=`x'
 cap drop z_`x' 	
@@ -356,9 +360,9 @@ sort anon t
 order anon t
 
 
+
 compress
+save "Output_data/CISC_regdata_any6sc8_${maxage}.dta", replace
 
+rm "Output_data/CISC_regdata_any6sc8_temp.dta"
 
-save "Output_data/CISC_regdata.dta", replace
-
-rm "Output_data/CISC_regdata_temp.dta"

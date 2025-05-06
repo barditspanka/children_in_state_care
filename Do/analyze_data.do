@@ -1,13 +1,9 @@
 ********************************************************************************
-*Data analysis for
-*Family foster care or residential care: the impact of home environment on children raised in state care
-*Authors: Anna Bárdits, Gábor Kertesi
-*code by Anna Bárdits, 17/07/2024
+*Data analysis for chilrden in state care
+*code by Anna Bárdits, 06/05/2025
 ********************************************************************************
 *set working directory (only needed if run without data preparation)
 cd "/homeKRTK/barditsa_prosp/children_in_state_care"
-
-
 
 set scheme cleanplots
 *use "Output_data/CISC_regdata-just6.dta", clear
@@ -30,6 +26,9 @@ global maxage=19
 
 global controls ib(3).m_szint ib(3).o_szint ib(3).grade_math ib(3).grade_grammar /*
 */ib(3).grade_lit ib(3).grade_behav ib(3).grade_effort  /*
+*/i.boy i.age_cat_6_grade i.year${maxage} i.county_gr6 i.sni i.num_siblings
+
+global mcontrols ib(3).grade_behav ib(3).grade_effort  /*
 */i.boy i.age_cat_6_grade i.year${maxage} i.county_gr6 i.sni i.num_siblings
 
 
@@ -69,10 +68,79 @@ restore
 
 
 *-------------------------------------------------------------------------------
-*Table 2 OLS
+*Table 2 OLS with oster bounds - 
 *-------------------------------------------------------------------------------
 
-use "Output_data/CISC_regdata.dta", clear
+*create dummy variables for oster for oster
+tab m_szint, gen(oster_mszint)
+tab o_szint, gen(oster_oszint)
+tab grade_math, gen(oster_grade_math)
+tab grade_grammar, gen(oster_grade_grammar)
+tab grade_lit, gen(oster_grade_lit)
+tab grade_behav, gen(oster_grade_behav)
+tab grade_effort, gen(oster_grade_effort)
+tab age_cat_6_grade, gen(oster_age_cat)
+tab year19, gen(oster_year19)
+tab county_gr6, gen(oster_county)
+tab num_siblings, gen(oster_siblings)
+
+global mcontrols ib(3).m_szint ib(3).o_szint ib(3).grade_math ib(3).grade_grammar /*
+*/ib(3).grade_lit /*
+*/i.boy i.age_cat_6_grade i.year${maxage} i.county_gr6 i.num_siblings
+
+*calculate OSter bounds for all outcomes with delta values
+foreach x of varlist $outcomes{
+
+	
+disp "-------------------------------------------------------"	
+disp "OUTCOME `x' NO CONTROLS"
+reg  `x'  i.foster, robust
+
+disp "-------------------------------------------------------"	
+disp "OUTCOME `x' BASELINE CONTROLS"
+reg  `x'  i.foster /*
+*/i.boy i.year${maxage} i.county_gr6 i.num_siblings i.age_cat_6_grade, robust
+
+disp "OUTCOME `x' COGNITIVE CONTROLS"
+reg  `x'  i.foster /*
+*/ib(3).m_szint ib(3).o_szint ib(3).grade_math ib(3).grade_grammar /*
+*/ib(3).grade_lit, robust
+
+disp "OUTCOME `x' BEHAV CONTROLS"
+reg `x'  i.foster ib(3).grade_behav ib(3).grade_effort i.sni, robust
+
+disp "OUTCOME `x' BEHAV CONTROLS + BASELINE"
+reg `x'  i.foster ib(3).grade_behav ib(3).grade_effort i.sni i.age_cat_6_grade i.boy i.year${maxage} i.county_gr6 i.num_siblings, robust
+
+disp "-------------------------------------------------------"
+disp "OUTCOME `x' ALL CONTROLS"
+
+reg  `x'  i.foster $controls, robust
+
+quietly regress `x' foster oster_mszint1 oster_mszint2 oster_mszint3 oster_mszint5 oster_mszint6 oster_mszint7 oster_mszint8 oster_mszint9  oster_oszint1 oster_oszint2 oster_oszint3 oster_oszint5 oster_oszint6 oster_oszint7 oster_oszint8 oster_oszint9 oster_grade_math1 oster_grade_math2 oster_grade_math4 oster_grade_math5 oster_grade_math6 oster_grade_grammar1 oster_grade_grammar2 oster_grade_grammar4 oster_grade_grammar5 oster_grade_grammar6 oster_grade_lit1 oster_grade_lit2 oster_grade_lit4 oster_grade_lit5 oster_grade_lit6 oster_grade_behav1 oster_grade_behav2 oster_grade_behav4 oster_grade_behav5 oster_grade_behav6 oster_grade_effort1 oster_grade_effort2 oster_grade_effort4 oster_grade_effort5 oster_grade_effort6 boy oster_age_cat2 oster_age_cat3 oster_age_cat4 oster_year192 oster_year193 oster_year194  oster_year195  oster_year196  oster_year197  oster_year198 oster_year199  oster_year1910 i.sni oster_county2 oster_county3 oster_county4 oster_county5 oster_county6 oster_county7 oster_county8 oster_county9 oster_county10 oster_county11 oster_county12 oster_county13 oster_county14 oster_county15 oster_county16 oster_county17 oster_county18 oster_county18 oster_county19 oster_county20 oster_county21 oster_siblings2 oster_siblings3 oster_siblings4 oster_siblings5 oster_siblings6 oster_siblings7, robust
+
+*using rmax - 1.3*r2 from the regression with the fulls et of controls
+local rmax=1.3*e(r2)
+
+disp "-------------------------------------------------------"
+disp "`x' ALL CONTROLS"
+psacalc beta foster, rmax(`rmax')
+
+disp "`x' ALL CONTROLS DELTA"
+psacalc delta foster, rmax(`rmax')
+
+disp "-------------------------------------------------------"
+disp "`x' MCONTROLS"
+psacalc beta foster, rmax(`rmax') mcontrol(oster_grade_behav1 oster_grade_behav2 oster_grade_behav4 oster_grade_behav5 oster_grade_behav6 oster_grade_effort1 oster_grade_effort2 oster_grade_effort4 oster_grade_effort5 oster_grade_effort6 boy oster_age_cat2 oster_age_cat3 oster_age_cat4 oster_year192 oster_year193 oster_year194  oster_year195  oster_year196  oster_year197  oster_year198 oster_year199  oster_year1910 i.sni oster_county2 oster_county3 oster_county4 oster_county5 oster_county6 oster_county7 oster_county8 oster_county9 oster_county10 oster_county11 oster_county12 oster_county13 oster_county14 oster_county15 oster_county16 oster_county17 oster_county18 oster_county18 oster_county19 oster_county20 oster_county21 oster_siblings2 oster_siblings3 oster_siblings4 oster_siblings5 oster_siblings6 oster_siblings7)
+
+disp "-------------------------------------------------------"
+disp "`x' delta MCONTROLS"
+psacalc delta foster, rmax(`rmax') mcontrol(oster_grade_behav1 oster_grade_behav2 oster_grade_behav4 oster_grade_behav5 oster_grade_behav6 oster_grade_effort1 oster_grade_effort2 oster_grade_effort4 oster_grade_effort5 oster_grade_effort6 boy oster_age_cat2 oster_age_cat3 oster_age_cat4 oster_year192 oster_year193 oster_year194  oster_year195  oster_year196  oster_year197  oster_year198 oster_year199  oster_year1910 i.sni oster_county2 oster_county3 oster_county4 oster_county5 oster_county6 oster_county7 oster_county8 oster_county9 oster_county10 oster_county11 oster_county12 oster_county13 oster_county14 oster_county15 oster_county16 oster_county17 oster_county18 oster_county18 oster_county19 oster_county20 oster_county21 oster_siblings2 oster_siblings3 oster_siblings4 oster_siblings5 oster_siblings6 oster_siblings7)
+
+
+}
+
+*regression results to table
 eststo clear
 foreach x of varlist $outcomes{
 	
@@ -89,15 +157,15 @@ esttab, keep(1.foster) se star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
 
 *uncontrolled difference for comparison
 eststo clear
-foreach x of varlist outcome_index {
+foreach x of varlist $outcomes {
 	
 reg `x' i.foster, robust
 eststo `x'_ols
 	
 }
+esttab
 esttab using "Results/regresult_main_descdiff.csv", keep(1.foster _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
 
-esttab
 
 *-------------------------------------------------------------------------------
 *Table 3. OLS by foster mother's education
@@ -115,6 +183,16 @@ esttab using "Results/regresult_feduc.tex", keep(1.foster_by_educ 2.foster_by_ed
 esttab using "Results/regresult_feduc.csv", b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
 
 eststo clear
+
+*check if difference is stat significant
+
+foreach x of varlist $outcomes outcome_index{
+reg `x' ib(1).foster_by_educ $controls, robust
+eststo `x'	
+}
+
+esttab , keep(0.foster_by_educ 2.foster_by_educ) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+
 
 *-------------------------------------------------------------------------------
 *Table 4 OLS by gender
@@ -141,80 +219,76 @@ esttab using "Results/regresult_main_boygirl.csv", b(3) se(3) ar2(3) star(+ 0.10
 
 
 *-------------------------------------------------------------------------------
-*Table 5 - IV first stage
+*Table 5 - The effect of foster parent capcity on outcomes, reduced form
 *-------------------------------------------------------------------------------
 *prepare data for IV
 *high, low fostermum rate, cut at median
 cap drop fostermums_rate01_pest
-gen fostermums_rate01_pest=0 if fostermums_100kid_pest<=24
-replace fostermums_rate01_pest=1 if fostermums_100kid_pest>24 & !missing(fostermums_100kid_pest)
+gen fostermums_rate01_pest=0 if fostermums_100kid_pest<=23
+replace fostermums_rate01_pest=1 if fostermums_100kid_pest>23 & !missing(fostermums_100kid_pest)
 
 
 global countycontrols employment_c unemployment_c komplex_c birth_rate_c mean_wageno0_c
 
-*first stage
+global ivcontrols ib(3).m_szint ib(3).o_szint ib(3).grade_math ib(3).grade_grammar /*
+*/ib(3).grade_lit ib(3).grade_behav ib(3).grade_effort  /*
+*/i.boy i.age_cat_6_grade i.year${maxage} i.sni i.num_siblings komplex_c  employment_c unemployment_c komplex_c birth_rate_c mean_wageno0_c
 
-eststo clear
-
-eststo: ivreg2  outcome_index (foster=fostermums_rate01_pest) $countycontrols if county_gr6!=. & county_gr6!=99, first savefirst savefprefix(s1) liml
-estadd scalar cdf1 =  `e(cdf)': s1foster
-
-
-eststo: ivreg2  ever_pregnant (foster=fostermums_rate01_pest) $countycontrols if county_gr6!=. & county_gr6!=99, first savefirst savefprefix(s3) liml
-estadd scalar cdf1 =  `e(cdf)': s3foster
-
-
-esttab s1foster s3foster,  keep(fostermums_rate01_pest) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) stats(cdf1 N, labels("CD Wald F" "N"))  
-
-
-esttab s1foster s3foster  using "Results/reg_iv_first_countyc.csv",  b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) stats(cdf1 N, labels("CD Wald F" "N")) replace
-
-*-------------------------------------------------------------------------------
-*Table 6 - Reduced form
-*-------------------------------------------------------------------------------
 
 eststo clear
 foreach x of varlist $outcomes outcome_index{	
 /*reg `x' i.fostermums_rate01_pest $countycontrols if county_gr6!=. & county_gr6!=99 & foster<=1, vce(cluster county_gr6) 
 eststo `x'_ivnoc*/	
-reg `x' i.fostermums_rate01_pest $countycontrols if county_gr6!=. & county_gr6!=99 & foster<=1, robust
+reg `x' i.fostermums_rate01_pest $ivcontrols if county_gr6!=. & county_gr6!=99 & foster<=1, robust
 eststo `x'_ivc
 	
 }
 
-
-
 esttab , keep(1.fostermums_rate01_pest _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) 
 
-esttab using "Results/reg_iv_reduced_countyc.tex", keep(1.fostermums_rate01_pest _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
-esttab using "Results/reg_iv_reduced_countyc.csv", keep(1.fostermums_rate01_pest _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+esttab using "Results/reg_iv_reduced_idiv.tex", keep(1.fostermums_rate01_pest _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+esttab using "Results/reg_iv_reduced_indiv.csv", keep(1.fostermums_rate01_pest _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
 
-
-
-*-------------------------------------------------------------------------------
-*Table 7 - IV
-*-------------------------------------------------------------------------------
-
-eststo clear
-foreach x of varlist $outcomes outcome_index {
-	
-*ivreg2 `x' (i.foster=i.fostermums_rate01_pest) $countycontrols if county_gr6!=. & county_gr6!=99, first
-disp "`x'" 
-disp "*****************************************************************"
-ivreg2 `x' (i.foster=i.fostermums_rate01_pest) $countycontrols if county_gr6!=. & county_gr6!=99, first
-eststo `x'_iv	
+*control means
+foreach x of varlist $outcomes outcome_index{
+sum `x' if fostermums_rate01_pest==0 & !missing(foster)
 }
 
-esttab, keep(1.foster _cons) b(3) se(3)  scalars(arfp N cdf) star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+*-------------------------------------------------------------------------------
+*Table 7 - Placebo
+*-------------------------------------------------------------------------------
 
-esttab using "Results/regresult_iv_countyc.tex", keep(1.foster) stat(arfp N cdf) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
-esttab using "Results/regresult_iv_countyc.csv", keep(1.foster) stat(arfp N cdf) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+
+global outcomes_p secondary_finished_${maxage} ever_mental_problem  ever_abort ever_birth neet_6m outcome_index_all
+
+eststo clear
+foreach x of varlist $outcomes_p {		
+reg `x' i.fostermums_rate01_pest $ivcontrols  if county_gr6!=. & county_gr6!=99 & home_type_clean==0, robust
+eststo `x'_ivc	
+}
+
+esttab , keep(1.fostermums_rate01_pest) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) 
+esttab using "Results/reg_iv_placebo.tex", keep(1.fostermums_rate01_pest _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+esttab using "Results/reg_iv_placebo.csv", keep(1.fostermums_rate01_pest _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+
+*control means
+foreach x of varlist $outcomes_p {
+sum `x' if fostermums_rate01_pest==0 & home_type_clean==0 & county_gr6!=. & county_gr6!=99 
+}
+
 
 
 *-------------------------------------------------------------------------------
-*Figure 2 - robustness checks
+*Figure 2 - Specification curve analysis
 *-------------------------------------------------------------------------------
-do "Do/robustness_checks.do"
+*this runs all regression and saves values needed for the curve. The plot itself is made by a sperate R script
+
+do "Do/specification_curve_analysis.do"
+
+*run nullfied version for the bootstrap
+
+do "Do/specification_curve_analysis_bootsrap.do"
+
 
 ********************************************************************************
 *APPENDIX
@@ -291,7 +365,7 @@ twoway scatter fostermums_100kid_c mean_wagen, mlab(county_pest) mlabvpos(pos_va
 graph export "Results/wage_fmcapacity.png", replace
 
 *-------------------------------------------------------------------------------
-*Figure A3 - preapred during robustness checks
+*Figures A3 - A7 preapred during specification curve naanylis, and R scripts produce the plots
 *------------------------------------------------------------------------------
 
 
@@ -312,7 +386,7 @@ use "Output_data/CISC_regdata.dta", clear
 cap drop home_type_nok
 gen home_type_nok=home_type_clean if home_type_clean!=1
 eststo clear
-foreach x of varlist $outcomes outcome_index_all{
+foreach x of varlist $outcomes_p {
 reg `x' i.home_type_nok $controls, robust
 eststo `x'
 }
@@ -322,8 +396,21 @@ esttab, keep(2.home_type_nok 3.home_type_nok) b(3) se(3) ar2(3) star(+ 0.10 * 0.
 esttab using "Results/regresult_all.tex", keep(2.home_type_nok 3.home_type_nok) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
 esttab using "Results/regresult_all.csv", b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
 
+
+esttab , keep(1.fostermums_rate01_pest) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) 
+
+*control means
+foreach x of varlist $outcomes_p {
+sum `x' if home_type_clean==0 & !missing(county_gr6) & county_gr6!=99
+}
+
 *-------------------------------------------------------------------------------
-*Table A5 - foster mother qaulity
+*Table A5 - OSter bounds for model 5 and 6
+*-------------------------------------------------------------------------------
+*already prepred in Table2
+
+*-------------------------------------------------------------------------------
+*Table A6 - foster mother qaulity
 *-------------------------------------------------------------------------------
 
 tab mother_educ
@@ -353,6 +440,8 @@ gen hh_min7=.
 replace hh_min7=0 if household_size<=6
 replace hh_min7=1 if household_size>=7
 
+
+
 eststo clear
 
 foreach x of varlist internet own_desk min300books talks_read talks_school parent_t_conf hh_min7{
@@ -371,12 +460,36 @@ drop if missing(foster)
 
 restore
 
+*-------------------------------------------------------------------------------
+*Table A7 - child descritives by foster mother educ
+*-------------------------------------------------------------------------------
+
+eststo clear
 
 
+
+foreach x of varlist $desccontrols{
+	
+eststo: reg `x' foster_by_educ if foster==1, robust
+
+}
+
+*p values for differences
+esttab, se  star(+ 0.10 * 0.05 ** 0.01 *** 0.001 ) 
+esttab using "Results/descriptives_pvalues_feduc.csv", se  star(+ 0.10 * 0.05 ** 0.01 *** 0.001 ) replace
+
+*means of the variables
+preserve
+drop if foster!=1
+	gcollapse (mean) $desccontrols, by(foster_by_educ)
+	export excel "Results/descriptives_feduc.xls", firstrow(variables) replace
+
+restore
+
 *-------------------------------------------------------------------------------
-*Table A6 - heterogeneity by Special needs
+*Table A8 - heterogeneity by Special needs
 *-------------------------------------------------------------------------------
-*Heterogeneity by sni
+*Heterogeneity by sn
 
 *sni type
 global snicontrols ib(3).m_szint ib(3).o_szint ib(3).grade_math ib(3).grade_grammar /*
@@ -399,30 +512,337 @@ esttab using "Results/regresult_main_sni.tex", keep(1.foster 1.foster#1.any_sni)
 esttab using "Results/regresult_main_sni.csv", b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
 
 
-
 *-------------------------------------------------------------------------------
-*Table A7 - IV placebo
+*Table A9 - Placebo on chilrden with a positive propesnity of getting into statecare
 *-------------------------------------------------------------------------------
 
 cap drop fostermums_rate01_pest
-gen fostermums_rate01_pest=0 if fostermums_100kid_pest<=24
-replace fostermums_rate01_pest=1 if fostermums_100kid_pest>24 & !missing(fostermums_100kid_pest)
+gen fostermums_rate01_pest=0 if fostermums_100kid_pest<=23
+replace fostermums_rate01_pest=1 if fostermums_100kid_pest>23 & !missing(fostermums_100kid_pest)
 
-global outcomes secondary_finished_${maxage} ever_mental_problem  ever_abort ever_birth neet_6m outcome_index_all
+
+global countycontrols employment_c unemployment_c komplex_c birth_rate_c mean_wageno0_c
+
+global ivcontrols ib(3).m_szint ib(3).o_szint ib(3).grade_math ib(3).grade_grammar /*
+*/ib(3).grade_lit ib(3).grade_behav ib(3).grade_effort  /*
+*/i.boy i.age_cat_6_grade i.year${maxage} i.sni i.num_siblings komplex_c  employment_c unemployment_c komplex_c birth_rate_c mean_wageno0_c
+
+cap drop statecare
+gen statecare=0 if home_type_clean==0
+replace statecare=1 if !missing(foster)
+
+probit statecare $controls
+
+cap drop pred_statecare
+predict pred_statecare
+
+sum pred_statecare if !missing(foster), detail
+global predscmedian=r(p50)
+disp "$predscmedian"
 
 eststo clear
-foreach x of varlist $outcomes {		
-reg `x' i.fostermums_rate01_pest $countycontrols if county_gr6!=. & county_gr6!=99 & home_type_clean==0, robust
-eststo `x'_ivc	
+foreach x of varlist $outcomes_p {		
+reg `x' i.fostermums_rate01_pest $ivcontrols  if county_gr6!=. & county_gr6!=99 & home_type_clean==0 & pred_statecare>=$predscmedian, robust
+eststo `x'_iv_pc	
 }
 
 esttab , keep(1.fostermums_rate01_pest) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) 
-esttab using "Results/reg_iv_placebo_countyc.tex", keep(1.fostermums_rate01_pest _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
-esttab using "Results/reg_iv_placebo_countyc.csv", keep(1.fostermums_rate01_pest _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+
+*control means
+foreach x of varlist $outcomes_p{
+sum `x' if fostermums_rate01_pest==0 & home_type_clean==0 & county_gr6!=. & county_gr6!=99 & pred_statecare>=$predscmedian
+}
 
 
 *-------------------------------------------------------------------------------
-*Table A8 - IV Balance
+*Table A10 - Inference for spec curve anaylsis - in R script
+*-------------------------------------------------------------------------------
+
+*-------------------------------------------------------------------------------
+*Table A11 - Regression of children living with biological family in garde 6
+*-------------------------------------------------------------------------------
+use "Output_data/CISC_regdata_h6sc8.dta", clear
+drop if missing(monthly_age)
+
+*Generate index of outcomes - positive value shows more favorable outcome
+*calculate only for popultaion of children in state care
+cap drop z_*
+foreach x of varlist neet_6m ever_mental_problem ever_pregnant {
+cap drop `x'_neg
+gen `x'_neg=-`x' if !missing(foster)
+cap drop z_`x' 	
+egen z_`x' = std(`x'_neg)
+}
+
+foreach x of varlist secondary_finished_19 {
+cap drop `x'_fost
+gen `x'_fost=`x' if !missing(foster)
+cap drop z_`x' 	
+egen z_`x' = std(`x'_fost)
+}
+
+cap drop outcome_index
+egen outcome_index=rmean(z_*)
+
+
+eststo clear
+foreach x of varlist $outcomes outcome_index{
+	
+reg `x' i.foster $controls, robust
+eststo `x'_olsc	
+}
+
+esttab, keep(1.foster) b(3) se ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+
+esttab using "Results/regresult_main_ols_h6sc8.tex", keep(1.foster _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+esttab using "Results/regresult_main_ols_h6sc8.csv", keep(1.foster _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+
+esttab, keep(1.foster) se star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+
+*uncontrolled difference for comparison
+eststo clear
+foreach x of varlist $outcomes outcome_index {
+	
+reg `x' i.foster, robust
+eststo `x'_ols
+	
+}
+esttab using "Results/regresult_main_descdiff_h6sc8.csv", keep(1.foster _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+
+esttab
+
+
+*-------------------------------------------------------------------------------
+*Table A12 - Regression of children with missing home type in grade 6
+*-------------------------------------------------------------------------------
+
+use "Output_data/CISC_regdata_m6sc8.dta", clear
+drop if missing(monthly_age)
+
+eststo clear
+foreach x of varlist $outcomes outcome_index{
+	
+reg `x' i.foster $controls, robust
+eststo `x'_olsc	
+}
+
+esttab, keep(1.foster) b(3) se ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+
+esttab using "Results/regresult_main_ols_m6sc8.tex", keep(1.foster _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+esttab using "Results/regresult_main_ols_m6sc8.csv", keep(1.foster _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+
+esttab, keep(1.foster) se star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+
+*uncontrolled difference for comparison
+eststo clear
+foreach x of varlist $outcomes outcome_index {
+	
+reg `x' i.foster, robust
+eststo `x'_ols
+	
+}
+esttab using "Results/regresult_main_descdiff_m6sc8.csv", keep(1.foster _cons) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+
+esttab
+
+
+*-------------------------------------------------------------------------------
+*Table A13 - LASSO ddml
+*-------------------------------------------------------------------------------
+use "Output_data/CISC_regdata.dta", clear
+
+*create dummy variables
+tab m_szint, gen(oster_mszint)
+tab o_szint, gen(oster_oszint)
+tab grade_math, gen(oster_grade_math)
+tab grade_grammar, gen(oster_grade_grammar)
+tab grade_lit, gen(oster_grade_lit)
+tab grade_behav, gen(oster_grade_behav)
+tab grade_effort, gen(oster_grade_effort)
+tab age_cat_6_grade, gen(oster_age_cat)
+tab year19, gen(oster_year19)
+tab county_gr6, gen(oster_county)
+tab num_siblings, gen(oster_siblings)
+
+
+*LASSO
+foreach x of varlist $outcomes{
+	*set random seed for replication
+set seed 422
+qddml `x'  foster  (oster_mszint1 oster_mszint2 oster_mszint3 oster_mszint5 oster_mszint6 oster_mszint7 oster_mszint8 oster_mszint9  oster_oszint1 oster_oszint2 oster_oszint3 oster_oszint5 oster_oszint6 oster_oszint7 oster_oszint8 oster_oszint9 oster_grade_math1 oster_grade_math2 oster_grade_math4 oster_grade_math5 oster_grade_math6 oster_grade_grammar1 oster_grade_grammar2 oster_grade_grammar4 oster_grade_grammar5 oster_grade_grammar6 oster_grade_lit1 oster_grade_lit2 oster_grade_lit4 oster_grade_lit5 oster_grade_lit6 oster_grade_behav1 oster_grade_behav2 oster_grade_behav4 oster_grade_behav5 oster_grade_behav6 oster_grade_effort1 oster_grade_effort2 oster_grade_effort4 oster_grade_effort5 oster_grade_effort6 boy oster_age_cat2 oster_age_cat3 oster_age_cat4 oster_year192 oster_year193 oster_year194  oster_year195  oster_year196  oster_year197  oster_year198 oster_year199  oster_year1910 i.sni oster_county2 oster_county3 oster_county4 oster_county5 oster_county6 oster_county7 oster_county8 oster_county9 oster_county10 oster_county11 oster_county12 oster_county13 oster_county14 oster_county15 oster_county16 oster_county17 oster_county18 oster_county18 oster_county19 oster_county20 oster_county21 oster_siblings2 oster_siblings3 oster_siblings4 oster_siblings5 oster_siblings6 oster_siblings7) if !missing(foster), model(partial) cmd(pdslasso) robust
+}
+foreach x of varlist $outcomes{
+
+pdslasso `x' i.foster ($controls)
+*matlist r(table)
+disp "Outcome: `x' above"
+}
+
+
+*-------------------------------------------------------------------------------
+*Table A14 - estimates for foster care using a more leninet def
+*-------------------------------------------------------------------------------
+
+use "Output_data/CISC_regdata.dta", clear
+
+
+gen foster_lenient=0 if t20==3
+replace foster_lenient=1 if t20==2
+
+*Generate index of outcomes - positive value shows more favorable outcome
+*calculate only for popultaion of children in state care
+cap drop z_*
+foreach x of varlist neet_6m ever_mental_problem ever_pregnant {
+cap drop `x'_neg
+gen `x'_neg=-`x' if !missing(foster_lenient)
+cap drop z_`x' 	
+egen z_`x' = std(`x'_neg)
+}
+
+foreach x of varlist secondary_finished_19 {
+cap drop `x'_fost
+gen `x'_fost=`x' if !missing(foster_lenient)
+cap drop z_`x' 	
+egen z_`x' = std(`x'_fost)
+}
+
+cap drop outcome_index
+egen outcome_index=rmean(z_*)
+
+
+eststo clear
+foreach x of varlist $outcomes outcome_index{
+	
+reg `x' i.foster_lenient $controls, robust
+eststo `x'_olsc	
+}
+
+esttab, keep(1.foster_lenient) b(3) se ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+
+
+*-------------------------------------------------------------------------------
+*Table A15 - Confidence intervals
+*-------------------------------------------------------------------------------
+use "Output_data/CISC_regdata.dta", clear
+
+*original
+eststo clear
+foreach x of varlist $outcomes{
+	
+reg `x' i.foster $controls , robust
+eststo `x'_olsc	
+}
+
+esttab, keep(1.foster)   b(3) se ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+
+*clustered
+eststo clear
+foreach x of varlist $outcomes{
+	
+reg `x' i.foster $controls , cluster(county_gr6)
+eststo `x'_olsc	
+}
+
+esttab, keep(1.foster)   b(3) se ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+
+*bootstrap
+eststo clear
+foreach x of varlist $outcomes{
+	
+reg `x' i.foster $controls , vce(bootstrap, seed(442))
+eststo `x'_olsc	
+}
+
+esttab, keep(1.foster)   b(3) se ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
+
+
+
+
+*-------------------------------------------------------------------------------
+*Table B1 - Proxy control ability
+*-------------------------------------------------------------------------------
+use "Output_data/CISC_regdata.dta", clear
+
+cap drop early_schoolstarter
+gen early_schoolstarter=1-late_schoolstarter
+
+*calculate index of ability in 6th grade
+cap drop z_*
+foreach x of varlist snidummy2-snidummy8 {
+cap drop `x'_neg
+gen `x'_neg=-`x' if !missing(foster)
+cap drop z_`x' 	
+egen z_`x' = std(`x'_neg)
+}
+
+foreach x of varlist grade*_nomiss m_zpsc o_zpsc  {
+cap drop `x'_fost
+gen `x'_fost=`x' if !missing(foster)
+cap drop z_`x' 	
+egen z_`x' = std(`x'_fost)
+}
+
+cap drop abilty_index6
+egen ability_index6=rmean(z_*)
+
+pwcorr ability_index6 ${desccontrols} if !missing(foster), sig
+
+
+*Proxy control
+replace early_schoolstarter=. if missing(late_schoolstarter)
+eststo clear
+eststo: reg ability_index6 i.foster early_schoolstarter
+esttab , b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+
+
+esttab using "Results/proxycontrol_ability.tex", b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+
+
+*-------------------------------------------------------------------------------
+*Table B2 - OLS estimates for the effect of foster care
+*-------------------------------------------------------------------------------
+
+
+eststo clear
+foreach x of varlist $outcomes outcome_index{
+
+reg `x' i.foster ability_index6 i.boy i.county_gr6 i.grade i.num_siblings i.year, robust
+eststo `x'
+
+	
+}
+
+esttab using "Results/proxycontrol_outcome.tex", keep(1.foster ability_index6) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+esttab using "Results/proxycontrol_outcome.csv", b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+
+
+
+*-------------------------------------------------------------------------------
+*Table C1 - IV first stage
+*-------------------------------------------------------------------------------
+use "Output_data/CISC_regdata.dta", clear
+
+cap drop fostermums_rate01_pest
+gen fostermums_rate01_pest=0 if fostermums_100kid_pest<=23
+replace fostermums_rate01_pest=1 if fostermums_100kid_pest>23 & !missing(fostermums_100kid_pest)
+
+eststo clear
+
+eststo: ivreg2  outcome_index (foster=fostermums_rate01_pest) $ivcontrols if county_gr6!=. & county_gr6!=99, first savefirst savefprefix(s1) liml
+estadd scalar cdf1 =  `e(cdf)': s1foster
+
+
+eststo: ivreg2  ever_pregnant (foster=fostermums_rate01_pest) $ivcontrols if county_gr6!=. & county_gr6!=99, first savefirst savefprefix(s3) liml
+estadd scalar cdf1 =  `e(cdf)': s3foster
+
+
+esttab s1foster s3foster,  keep(fostermums_rate01_pest) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) stats(cdf1 N, labels("CD Wald F" "N"))  
+
+
+esttab s1foster s3foster  using "Results/reg_iv_first_countyc.csv",  b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) stats(cdf1 N, labels("CD Wald F" "N")) replace
+
+*-------------------------------------------------------------------------------
+*Table C2 - IV Balance
 *-------------------------------------------------------------------------------
 
 gen fmother_voc_educ= fmother_sec_educ
@@ -468,86 +888,27 @@ drop if missing(foster)
 
 restore
 
-*-------------------------------------------------------------------------------
-*Table A8 - IV Compliers
-*-------------------------------------------------------------------------------
-*compliers
-
-tab boy if !missing(fostermums_rate01_pest) & !missing(foster)
-reg foster fostermums_rate01_pest if boy==1
-reg foster fostermums_rate01_pest if boy!=1
-reg foster fostermums_rate01_pest if sni==0
-reg foster fostermums_rate01_pest if sni!=0
-gen sni01=0 if sni==0
-replace sni01=1 if sni>=1 & !missing(sni)
-sum sni01 if !missing(fostermums_rate01_pest) & !missing(foster)
-
-reg foster fostermums_rate01_pest if grade_behav>=4 & !missing(grade_behav)
-reg foster fostermums_rate01_pest  if grade_behav<4
-gen grade_behav01=0 if grade_behav<4 & !missing(grade_behav)
-replace grade_behav01=1 if grade_behav>=4 & !missing(grade_behav)
-
-sum grade_behav01 if !missing(fostermums_rate01_pest) & !missing(foster)
-
-reg foster fostermums_rate01_pest  if num_siblings>=2 & !missing(num_siblings)
-reg foster fostermums_rate01_pest  if num_siblings<2
-gen num_siblings01=0 if num_siblings<2 & !missing(num_siblings)
-replace num_siblings01=1 if num_siblings>=2 & !missing(num_siblings)
-sum num_siblings01 if !missing(fostermums_rate01_pest) & !missing(foster)
-
 
 
 *-------------------------------------------------------------------------------
-*Table B1 - Proxy control avility
+*Table C3 - IV
 *-------------------------------------------------------------------------------
-
-
-cap drop early_schoolstarter
-gen early_schoolstarter=1-late_schoolstarter
-
-*calculate index of ability in 6th grade
-cap drop z_*
-foreach x of varlist snidummy2-snidummy8 {
-cap drop `x'_neg
-gen `x'_neg=-`x' if !missing(foster)
-cap drop z_`x' 	
-egen z_`x' = std(`x'_neg)
-}
-
-foreach x of varlist grade*_nomiss m_zpsc o_zpsc  {
-cap drop `x'_fost
-gen `x'_fost=`x' if !missing(foster)
-cap drop z_`x' 	
-egen z_`x' = std(`x'_fost)
-}
-
-cap drop abilty_index6
-egen ability_index6=rmean(z_*)
-
-pwcorr ability_index6 ${desccontrols} if !missing(foster), sig
-
-
-*Proxy control
-replace early_schoolstarter=. if missing(late_schoolstarter)
-eststo clear
-eststo: reg ability_index6 i.foster early_schoolstarter
-esttab using "Results/proxycontrol_ability.tex", b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
-
-
-*-------------------------------------------------------------------------------
-*Table B2 - OLS estimates for the effect of foster care
-*-------------------------------------------------------------------------------
+cap drop fostermums_rate01_pest
+gen fostermums_rate01_pest=0 if fostermums_100kid_pest<=23
+replace fostermums_rate01_pest=1 if fostermums_100kid_pest>23 & !missing(fostermums_100kid_pest)
 
 
 eststo clear
-foreach x of varlist $outcomes outcome_index{
-
-reg `x' i.foster ability_index6 i.boy i.county_gr6 i.grade i.num_siblings i.year, robust
-eststo `x'
-
+foreach x of varlist $outcomes outcome_index {
 	
+*ivreg2 `x' (i.foster=i.fostermums_rate01_pest) $countycontrols if county_gr6!=. & county_gr6!=99, first
+disp "`x'" 
+disp "*****************************************************************"
+ivreg2 `x' (i.foster=i.fostermums_rate01_pest) $ivcontrols if county_gr6!=. & county_gr6!=99, first
+eststo `x'_iv	
 }
 
-esttab using "Results/proxycontrol_outcome.tex", keep(1.foster ability_index6) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
-esttab using "Results/proxycontrol_outcome.csv", b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+esttab, keep(1.foster _cons) b(3) se(3)  scalars(arfp N cdf) star(+ 0.10 * 0.05 ** 0.01 *** 0.001)
 
+esttab using "Results/regresult_iv.tex", keep(1.foster) stat(arfp N cdf) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace
+esttab using "Results/regresult_iv.csv", keep(1.foster) stat(arfp N cdf) b(3) se(3) ar2(3) star(+ 0.10 * 0.05 ** 0.01 *** 0.001) replace

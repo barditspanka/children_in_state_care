@@ -9,20 +9,20 @@ bysort anon grade: gegen first_obs=min(t)
 
 sort anon t
 *Children have to be observed until last montn of maxage
-global maxage=19
+global maxage=18
 
 bysort anon: gegen maxage_month=max(monthly_age)
 drop if missing(maxage_month)
 drop if maxage_month<${maxage}+0.9
-
+save temp, replace
 
 *For main results, only those, who do not change home type
-drop if home_change==1
+*drop if home_change==1
 
 
 bysort anon (t): gen num_tranquil=sum(drug_antidep)
 bysort anon (t): gen num_antidep=sum(drug_tranquil)
-save temp, replace
+
 *keep 6th grade observations
 preserve 
 	keep if grade==6 & first_obs==t
@@ -34,7 +34,7 @@ preserve
 
 	keep anon t m_zpsc o_zpsc home_type_clean year grade grade_* m_szint o_szint /*
 	*/boy num_siblings age monthly_age mother_educ father_educ telephely_anonim sni county jaras_al tranquil antidep csh_index mother_job father_job roomnumber_hh cellphonenum computernum carnum bathroomnum booknum internet own_books own_desk own_room own_computer family_hwhelp family_talkschool family_talkread family_housework family_gardening household_size mother_age educ_plans age_firstpre6_move sum_district_change late_schoolstarter late_schoolstarter2 /*
-*/ parent_teacher_conference household_size fosterfam_quality fosterfam_finquality fosterfam_emoquality t20
+*/ parent_teacher_conference household_size fosterfam_quality fosterfam_finquality fosterfam_emoquality
 
 	rename county county_gr6
 
@@ -74,6 +74,11 @@ sort anon t
 
 bysort anon (t): gen num_abortions=sum(CS_sex_abort)
 bysort anon (t): gen num_birth=sum(CS_sex_deli)
+
+bysort anon (t): gen num_tranquil=sum(drug_antidep)
+
+bysort anon (t): gen num_antidep=sum(drug_tranquil)
+
 
 
 *outcomes for age 19
@@ -183,6 +188,8 @@ replace ever_pregnant=0 if boy==0
 replace ever_pregnant=1 if (ever_birth==1 | ever_abort==1)
 
 
+
+*check if this is fine - no?
 gen year${maxage}=floor((t${maxage}-1)/12)+2003
 
 
@@ -273,8 +280,6 @@ replace num_statecare_pest=2444+2313 if county_pest==21
 
 gen fostermums_100kid_pest= foster_mother_2015_pest/num_statecare_pest*100
 
-rename komplex_fejl komplex
-
 rename * *_c
 
 rename county_c county_gr6
@@ -284,81 +289,8 @@ rename ev_c year
 
 merge 1:m county_gr6 year using "Output_data/CISC_regdata_temp.dta", nogen keep(using match)
 
-
-
-*data preparation for table
-
-*control variables
-global controls ib(3).m_szint ib(3).o_szint ib(3).grade_math ib(3).grade_grammar /*
-*/ib(3).grade_lit ib(3).grade_behav ib(3).grade_effort  /*
-*/i.boy i.age_cat_6_grade i.year${maxage} i.county_gr6 i.sni i.num_siblings
-
-
-*generate variables for decsriptive tables
-foreach x of varlist grade*{
-gen `x'_nomiss=`x' if `x'!=99
-}
-
-tab sni, gen(snidummy)
-gen numsiblings_nomiss=num_siblings if num_siblings!=99
-
-
-*controls in descriptive table
-global desccontrols m_zpsc o_zpsc grade*_nomiss numsiblings_nomiss boy age snidummy* late_schoolstarter
-
-
-*Generate index of outcomes - positive value shows more favorable outcome
-*calculate only for popultaion of children in state care
-cap drop z_*
-foreach x of varlist neet_6m ever_mental_problem ever_pregnant {
-cap drop `x'_neg
-gen `x'_neg=-`x' if !missing(foster)
-cap drop z_`x' 	
-egen z_`x' = std(`x'_neg)
-}
-
-foreach x of varlist secondary_finished_19 {
-cap drop `x'_fost
-gen `x'_fost=`x' if !missing(foster)
-cap drop z_`x' 	
-egen z_`x' = std(`x'_fost)
-}
-
-cap drop outcome_index
-egen outcome_index=rmean(z_*)
-
-*Generate index of outcomes - positive value shows more favorable outcome
-*calculate for whole population
-cap drop z_*
-foreach x of varlist neet_6m ever_mental_problem ever_pregnant {
-cap drop `x'_neg
-gen `x'_neg=-`x'
-cap drop z_`x' 	
-egen z_`x' = std(`x'_neg)
-}
-
-foreach x of varlist secondary_finished_19 {
-cap drop `x'_fost
-gen `x'_fost=`x'
-cap drop z_`x' 	
-egen z_`x' = std(`x'_fost)
-}
-
-
-cap drop outcome_index_all
-egen outcome_index_all=rmean(z_*)
-
-*outcome variables
-global outcomes secondary_finished_${maxage} ever_mental_problem  ever_abort ever_birth neet_6m outcome_index
-
-
 sort anon t
-order anon t
-
 
 compress
+save "Output_data/CISC_regdata_just6_18.dta", replace
 
-
-save "Output_data/CISC_regdata.dta", replace
-
-rm "Output_data/CISC_regdata_temp.dta"

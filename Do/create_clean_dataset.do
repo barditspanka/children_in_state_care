@@ -341,7 +341,7 @@ keep anon t sex grade *educ home_type_clean m_zpsc o_zpsc m_szint o_szint/*
 */ household_size mother_age father_age mother_job father_job /*
 */ roomnumber_hh cellphonenum computernum carnum bathroomnum booknum /*
 */ internet own_books own_computer own_desk own_room /*
-*/ family* has_foster_father parent_teacher_conference fosterfam_quality fosterfam_finquality fosterfam_emoquality birth_year birth_month
+*/ family* has_foster_father parent_teacher_conference fosterfam_quality fosterfam_finquality fosterfam_emoquality birth_year birth_month t20 t21a
 
 save "Output_data/NABC_clean.dta", replace
 
@@ -782,10 +782,10 @@ replace unemployed=1 if regist15==1
 *lezáratlan?
 
 *merge complex score of district development
-rename jaras_al jaras_kod
-merge m:1 jaras_kod using "/homeKRTK/egeszseg_tarsadalom/2012_rehab_reform/jaras_komplex.dta", keep(master match)
+
+merge m:1 jaras_al using "/homeKRTK/egeszseg_tarsadalom/Retirement_Firms/komplex_jaras.dta", keep(master match)
 drop _merge
-rename jaras_kod jaras_al
+
 
 
 *merge foster ratio

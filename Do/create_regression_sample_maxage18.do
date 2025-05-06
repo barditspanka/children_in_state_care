@@ -9,7 +9,7 @@ bysort anon grade: gegen first_obs=min(t)
 
 sort anon t
 *Children have to be observed until last montn of maxage
-global maxage=19
+global maxage=18
 
 bysort anon: gegen maxage_month=max(monthly_age)
 drop if missing(maxage_month)
@@ -34,7 +34,7 @@ preserve
 
 	keep anon t m_zpsc o_zpsc home_type_clean year grade grade_* m_szint o_szint /*
 	*/boy num_siblings age monthly_age mother_educ father_educ telephely_anonim sni county jaras_al tranquil antidep csh_index mother_job father_job roomnumber_hh cellphonenum computernum carnum bathroomnum booknum internet own_books own_desk own_room own_computer family_hwhelp family_talkschool family_talkread family_housework family_gardening household_size mother_age educ_plans age_firstpre6_move sum_district_change late_schoolstarter late_schoolstarter2 /*
-*/ parent_teacher_conference household_size fosterfam_quality fosterfam_finquality fosterfam_emoquality t20
+*/ parent_teacher_conference household_size fosterfam_quality fosterfam_finquality fosterfam_emoquality
 
 	rename county county_gr6
 
@@ -43,7 +43,7 @@ preserve
 	rename jaras_al jaras_al_gr6
 	*save vars from 6th grade
 	sort anon t
-	save "Output_data/6th_grade_data.dta", replace
+	save "Output_data/6th_grade_data_${maxage}.dta", replace
 restore
 preserve 
 	keep if grade==8 & first_obs==t
@@ -52,7 +52,7 @@ preserve
 	
 	rename * *8
 	rename anon8 anon
-	save "Output_data/8th_grade_scores.dta", replace
+	save "Output_data/8th_grade_scores_${maxage}.dta", replace
 restore
 
 preserve 
@@ -62,7 +62,7 @@ preserve
 	
 	rename * *10
 	rename anon10 anon
-	save "Output_data/10th_grade_scores.dta", replace
+	save "Output_data/10th_grade_scores_${maxage}.dta", replace
 restore
 	
 *use 
@@ -101,13 +101,13 @@ keep if age==$maxage & korho==12
 keep anon t jaras_al county num_abortions num_birth num_tranquil num_antidep sum_neet${maxage} /*
 */ sum_unemp${maxage} sum_publicw${maxage} sum_altalanos sum_szakma sum_erettsegi hometype8
 rename t t${maxage}
-rename county county_19
-rename jaras_al jaras_al_19
+rename county county_${maxage}
+rename jaras_al jaras_al_${maxage}
 
 *merge 1:1 anon using 
-merge 1:1 anon using "Output_data/6th_grade_data.dta", nogen
-merge 1:1 anon using "Output_data/8th_grade_scores.dta", nogen
-merge 1:1 anon using "Output_data/10th_grade_scores.dta", nogen
+merge 1:1 anon using "Output_data/6th_grade_data_${maxage}.dta", nogen
+merge 1:1 anon using "Output_data/8th_grade_scores_${maxage}.dta", nogen
+merge 1:1 anon using "Output_data/10th_grade_scores_${maxage}.dta", nogen
 sort anon
 
 gen neet_all_year=0
@@ -317,7 +317,7 @@ cap drop z_`x'
 egen z_`x' = std(`x'_neg)
 }
 
-foreach x of varlist secondary_finished_19 {
+foreach x of varlist secondary_finished_$maxage {
 cap drop `x'_fost
 gen `x'_fost=`x' if !missing(foster)
 cap drop z_`x' 	
@@ -337,7 +337,7 @@ cap drop z_`x'
 egen z_`x' = std(`x'_neg)
 }
 
-foreach x of varlist secondary_finished_19 {
+foreach x of varlist secondary_finished_$maxage {
 cap drop `x'_fost
 gen `x'_fost=`x'
 cap drop z_`x' 	
@@ -359,6 +359,6 @@ order anon t
 compress
 
 
-save "Output_data/CISC_regdata.dta", replace
+save "Output_data/CISC_regdata_${maxage}.dta", replace
 
 rm "Output_data/CISC_regdata_temp.dta"
