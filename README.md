@@ -5,4 +5,4 @@ Replication and code documentation
 Authors: Anna Bárdits and Gábor Kertesi. The replication package and codes are written by Anna Bárdits (contact:bardits.anna@krtk.elte.hu)
 All scripts are located in the Do folder. Do/master.do calls all other do files. Data files are accessible on CERS's server
 
-Deatiled README in README.pdf
+Detailed README in README.pdf
